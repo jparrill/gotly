@@ -1,13 +1,15 @@
-package main
+package server
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/jparrill/gotly/pkg/urlshort"
 )
 
-func main() {
+func Run(basePath string) {
 	mux := defaultMux()
 
 	// Build the MapHandler using the mux as the fallback
@@ -17,13 +19,13 @@ func main() {
 	}
 	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
-	// Build the YAMLHandler using the mapHandler as the
-	// fallback
-	yaml := `
-- path: /
-  url: https://marca.es
-`
-	yamlHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
+	// Load additional sample file located in assets
+	ymlB, err := ioutil.ReadFile(basePath + "/assets/samples/additionalSets.yaml")
+	if err != nil {
+		log.Fatalf("Error loading assets sample file: %v", err)
+	}
+
+	yamlHandler, err := urlshort.YAMLHandler([]byte(ymlB), mapHandler)
 	if err != nil {
 		panic(err)
 	}
