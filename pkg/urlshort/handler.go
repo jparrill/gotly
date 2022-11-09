@@ -1,8 +1,10 @@
 package urlshort
 
 import (
+	"context"
 	"net/http"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jparrill/gotly/internal/utils"
 )
 
@@ -17,8 +19,17 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 	}
 }
 
-func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	urlPaths, err := utils.LoadSetPathFromYAML(yml)
+func YAMLHandler(yml []byte, ctx context.Context, rdb *redis.Client, fallback http.Handler) (http.HandlerFunc, error) {
+	// Grab entries from YAML file
+	urlPaths := make(map[string]string)
+
+	err := utils.LoadSetPathFromYAML(yml, &urlPaths)
+	if err != nil {
+		return nil, err
+	}
+
+	// Grab entries from DDBB
+	err = utils.LoadKVFromRedis(ctx, rdb, &urlPaths)
 	if err != nil {
 		return nil, err
 	}

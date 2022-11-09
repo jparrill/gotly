@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
+	"github.com/go-redis/redis/v8"
 	gotlyTypes "github.com/jparrill/gotly/internal/types"
 	"gopkg.in/yaml.v2"
 )
@@ -16,17 +18,30 @@ func GetBaseRepoPath(fl string) (string, error) {
 	return filepath.Abs(fl)
 }
 
-func LoadSetPathFromYAML(yml []byte) (map[string]string, error) {
+func LoadSetPathFromYAML(yml []byte, tuples *map[string]string) error {
 	var urlMap []gotlyTypes.URLMap
-	urlPaths := make(map[string]string)
 
 	err := yaml.Unmarshal(yml, &urlMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for _, set := range urlMap {
-		urlPaths[set.Path] = set.Url
+		(*tuples)[set.Path] = set.Url
 	}
 
-	return urlPaths, nil
+	return nil
+}
+
+func LoadKVFromRedis(ctx context.Context, rdb *redis.Client, tuples *map[string]string) error {
+
+	iter := rdb.Scan(ctx, 0, "/*", 0).Iterator()
+	for iter.Next(ctx) {
+		get := rdb.Get(ctx, iter.Val())
+		(*tuples)[iter.Val()] = get.Val()
+	}
+	if err := iter.Err(); err != nil {
+		return err
+	}
+
+	return nil
 }

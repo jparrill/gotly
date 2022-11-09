@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"os"
 	"path/filepath"
@@ -11,6 +11,9 @@ import (
 )
 
 func main() {
+	// Set Context
+	ctx := context.Background()
+
 	// Locate basepath for repository
 	dir, err := utils.GetBaseRepoPath(filepath.Dir(os.Args[0]))
 	if err == os.ErrNotExist {
@@ -25,8 +28,7 @@ func main() {
 	}
 
 	// TODO: (cobra and maybe viper) Load config from file
-	fmt.Println(dir)
 
 	// Run Server
-	server.Run(dir)
+	server.Run(ctx, dir)
 }

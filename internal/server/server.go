@@ -1,16 +1,30 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 
+	"github.com/go-redis/redis/v8"
+	gotlyDB "github.com/jparrill/gotly/internal/database"
 	"github.com/jparrill/gotly/pkg/urlshort"
 )
 
-func Run(basePath string) {
+func Run(ctx context.Context, basePath string) {
 	mux := defaultMux()
+
+	// DDBB
+	// - TODO: Cobra + Config file to populate DDBB options
+	rdOpts := redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	}
+
+	// Create RDB Client
+	rdb := gotlyDB.GetClient(ctx, &rdOpts)
 
 	// Build the MapHandler using the mux as the fallback
 	pathsToUrls := map[string]string{
@@ -25,7 +39,7 @@ func Run(basePath string) {
 		log.Fatalf("Error loading assets sample file: %v", err)
 	}
 
-	yamlHandler, err := urlshort.YAMLHandler([]byte(ymlB), mapHandler)
+	yamlHandler, err := urlshort.YAMLHandler([]byte(ymlB), ctx, &rdb, mapHandler)
 	if err != nil {
 		panic(err)
 	}
