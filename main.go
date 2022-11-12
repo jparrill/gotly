@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jparrill/gotly/internal/config"
 	"github.com/jparrill/gotly/internal/server"
 	"github.com/jparrill/gotly/internal/utils"
 )
@@ -27,8 +28,12 @@ func main() {
 		}
 	}
 
-	// TODO: (cobra and maybe viper) Load config from file
+	// Recover the configuration
+	config.RecoverConfig(dir + "/assets/samples/config.yaml")
+	// Initialize the logger
+	config.InitLogger()
+	config.MainLogger.Info("Initializing DDBB")
 
 	// Run Server
-	server.Run(ctx, dir)
+	server.Run(ctx, dir, &config.CFG)
 }

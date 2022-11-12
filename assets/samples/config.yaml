@@ -1,0 +1,14 @@
+tmpfolder: "/tmp/gotly/"
+appport: 8080
+srcfile: "/Users/jparrill/Projects/mentoring/go/gotly/assets/samples/additionalSets.yaml"
+db:
+  host: "0.0.0.0"
+  type: "redis"
+  user: ""
+  pass: ""
+  num: 0
+  port: 6379
+log:
+  logpath: "/tmp/gotly/logs"
+  loglevel: "debug"
+  logtruncate: true

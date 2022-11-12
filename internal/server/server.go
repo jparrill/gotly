@@ -3,56 +3,44 @@ package server
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/jparrill/gotly/internal/config"
 	gotlyDB "github.com/jparrill/gotly/internal/database"
 	"github.com/jparrill/gotly/pkg/urlshort"
 )
 
-func Run(ctx context.Context, basePath string) {
-	mux := defaultMux()
-
-	// DDBB
-	// - TODO: Cobra + Config file to populate DDBB options
-	rdOpts := redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	}
-
+func Run(ctx context.Context, basePath string, config *config.Config) {
 	// Create RDB Client
-	rdb := gotlyDB.GetClient(ctx, &rdOpts)
+	rdb := gotlyDB.GetClient(ctx, &redis.Options{
+		Addr:     fmt.Sprintf("%s:%d", config.DB.Host, config.DB.Port),
+		Password: config.DB.Pass,
+		DB:       config.DB.Num,
+	})
 
 	// Build the MapHandler using the mux as the fallback
 	pathsToUrls := map[string]string{
 		"/go":   "https://google.es",
 		"/fino": "https://finofilipino.org",
 	}
-	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
+	mapHandler := urlshort.MapHandler(pathsToUrls, http.NewServeMux())
 
 	// Load additional sample file located in assets
-	ymlB, err := ioutil.ReadFile(basePath + "/assets/samples/additionalSets.yaml")
+	ymlB, err := os.ReadFile(config.SourceFile)
 	if err != nil {
-		log.Fatalf("Error loading assets sample file: %v", err)
+		log.Fatalf("Error loading data from source file %s: %v", config.SourceFile, err)
 	}
 
 	yamlHandler, err := urlshort.YAMLHandler([]byte(ymlB), ctx, &rdb, mapHandler)
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
-	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
-}
-
-func defaultMux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", hello)
-	return mux
-}
-
-func hello(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello, world!")
+	log.Printf("Starting the server on %d port", config.AppPort)
+	err = http.ListenAndServe(fmt.Sprintf(":%d", config.AppPort), yamlHandler)
+	if err != nil {
+		log.Panicf("Failed to raise up webserver in %d port", config.AppPort)
+	}
 }

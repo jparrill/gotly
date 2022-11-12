@@ -2,7 +2,7 @@
 .PHONY: run redis tests doc clean
 .EXPORT_ALL_VARIABLES:
 
-run: redis
+run:
 	go run main.go
 
 redis:
